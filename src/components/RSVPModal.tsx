@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Clock, MapPin, Users } from 'lucide-react'
+import { blink } from '../blink/client'
 
 interface RSVPModalProps {
   isOpen: boolean
@@ -26,24 +27,101 @@ export default function RSVPModal({ isOpen, onClose }: RSVPModalProps) {
     message: ''
   })
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Here you would typically send the RSVP data to your backend
-    console.log('RSVP submitted:', formData)
-    setIsSubmitted(true)
-    setTimeout(() => {
-      setIsSubmitted(false)
-      onClose()
-      setFormData({
-        name: '',
-        email: '',
-        attendance: 'yes',
-        guests: 1,
-        dietaryRestrictions: '',
-        message: ''
+    setIsSubmitting(true)
+    
+    try {
+      // Send confirmation email to the guest
+      const guestEmailResult = await blink.notifications.email({
+        to: formData.email,
+        subject: '🎉 RSVP Confirmation - Birthday Party!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #FF6B9D, #FFD93D); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">🎂 Birthday Party RSVP</h1>
+            </div>
+            <div style="background: #FFF8F0; padding: 30px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #FF6B9D; margin-top: 0;">Hi ${formData.name}! 👋</h2>
+              <p style="font-size: 16px; line-height: 1.6;">
+                Thank you for your RSVP! Here are your party details:
+              </p>
+              
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FFD93D;">
+                <h3 style="color: #FF6B9D; margin-top: 0;">🎉 Party Details</h3>
+                <p><strong>📅 Date:</strong> Saturday, July 20th, 2025</p>
+                <p><strong>🕕 Time:</strong> 6:00 PM - 11:00 PM</p>
+                <p><strong>📍 Location:</strong> 123 Celebration Street, Party City</p>
+                <p><strong>👥 Your Response:</strong> ${formData.attendance === 'yes' ? "Yes, I'll be there! 🎉" : formData.attendance === 'no' ? "Sorry, can't make it 😢" : "Maybe, not sure yet 🤔"}</p>
+                ${formData.attendance === 'yes' ? `<p><strong>🎫 Guests:</strong> ${formData.guests} ${formData.guests === 1 ? 'person' : 'people'}</p>` : ''}
+                ${formData.dietaryRestrictions ? `<p><strong>🍽️ Dietary Notes:</strong> ${formData.dietaryRestrictions}</p>` : ''}
+                ${formData.message ? `<p><strong>💬 Your Message:</strong> ${formData.message}</p>` : ''}
+              </div>
+              
+              <p style="font-size: 16px; line-height: 1.6;">
+                We can't wait to celebrate with you! If you need to change your RSVP or have any questions, just reply to this email.
+              </p>
+              
+              <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #666; font-size: 14px;">
+                  🎈 Get ready for an amazing celebration! 🎈
+                </p>
+              </div>
+            </div>
+          </div>
+        `,
+        text: `Hi ${formData.name}! Thank you for your RSVP to the birthday party on Saturday, July 20th, 2025 from 6:00 PM - 11:00 PM at 123 Celebration Street, Party City. Your response: ${formData.attendance}. We can't wait to celebrate with you!`
       })
-    }, 2000)
+
+      // Send notification email to party host
+      const hostEmailResult = await blink.notifications.email({
+        to: 'party-host@example.com', // Replace with actual host email
+        subject: `🎉 New RSVP from ${formData.name}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #FF6B9D; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+              <h1 style="color: white; margin: 0;">📝 New RSVP Received!</h1>
+            </div>
+            <div style="background: #FFF8F0; padding: 20px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #FF6B9D;">RSVP Details:</h2>
+              <ul style="font-size: 16px; line-height: 1.8;">
+                <li><strong>Name:</strong> ${formData.name}</li>
+                <li><strong>Email:</strong> ${formData.email}</li>
+                <li><strong>Attendance:</strong> ${formData.attendance === 'yes' ? "✅ Yes, attending" : formData.attendance === 'no' ? "❌ Not attending" : "❓ Maybe"}</li>
+                ${formData.attendance === 'yes' ? `<li><strong>Guests:</strong> ${formData.guests} ${formData.guests === 1 ? 'person' : 'people'}</li>` : ''}
+                ${formData.dietaryRestrictions ? `<li><strong>Dietary Restrictions:</strong> ${formData.dietaryRestrictions}</li>` : ''}
+                ${formData.message ? `<li><strong>Message:</strong> ${formData.message}</li>` : ''}
+              </ul>
+            </div>
+          </div>
+        `,
+        text: `New RSVP from ${formData.name} (${formData.email}). Attendance: ${formData.attendance}. ${formData.guests ? `Guests: ${formData.guests}. ` : ''}${formData.message ? `Message: ${formData.message}` : ''}`
+      })
+
+      console.log('RSVP emails sent:', { guestEmailResult, hostEmailResult })
+      setIsSubmitted(true)
+      
+      setTimeout(() => {
+        setIsSubmitted(false)
+        onClose()
+        setFormData({
+          name: '',
+          email: '',
+          attendance: 'yes',
+          guests: 1,
+          dietaryRestrictions: '',
+          message: ''
+        })
+      }, 3000)
+      
+    } catch (error) {
+      console.error('Failed to send RSVP emails:', error)
+      alert('Sorry, there was an error sending your RSVP. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -192,11 +270,12 @@ export default function RSVPModal({ isOpen, onClose }: RSVPModalProps) {
 
                   <motion.button
                     type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+                    disabled={isSubmitting}
+                    whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
+                    whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
+                    className="w-full bg-primary text-white py-3 px-6 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Send RSVP 🎊
+                    {isSubmitting ? 'Sending RSVP... 📧' : 'Send RSVP 🎊'}
                   </motion.button>
                 </form>
               </>
@@ -217,7 +296,7 @@ export default function RSVPModal({ isOpen, onClose }: RSVPModalProps) {
                   RSVP Received!
                 </h3>
                 <p className="text-gray-600">
-                  Thank you for responding! We can't wait to celebrate with you.
+                  Thank you for responding! A confirmation email has been sent to your inbox. We can't wait to celebrate with you! 📧
                 </p>
               </motion.div>
             )}
