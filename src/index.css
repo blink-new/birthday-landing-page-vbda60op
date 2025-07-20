@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Dancing+Script:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: 345 100% 70%;
+  --accent: 48 100% 60%;
+  --background: 33 100% 97%;
+  --dark-mode: 258 73% 26%;
+  --foreground: 0 0% 15%;
+  --muted: 33 50% 90%;
+  --muted-foreground: 0 0% 45%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 15%;
+  --border: 33 30% 85%;
+  --input: 33 30% 85%;
+  --ring: 345 100% 70%;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Inter, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow-x: hidden;
+}
+
+.dancing-script {
+  font-family: 'Dancing Script', cursive;
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0); 
+  }
+
+  50% { 
+    transform: translateY(-20px); 
+  }
+}
+
+@keyframes confetti-fall {
+  0% { 
+    transform: translateY(-100vh) rotate(0deg); 
+    opacity: 100%; 
+  }
+
+  100% { 
+    transform: translateY(100vh) rotate(360deg); 
+    opacity: 0%; 
+  }
+}
+
+@keyframes balloon-float {
+  0%, 100% { 
+    transform: translateY(0) rotate(-2deg); 
+  }
+
+  50% { 
+    transform: translateY(-30px) rotate(2deg); 
+  }
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: confetti-fall 3s linear infinite;
+}
+
+.balloon {
+  animation: balloon-float 4s ease-in-out infinite;
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
